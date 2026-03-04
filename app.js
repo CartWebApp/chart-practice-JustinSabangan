@@ -46,7 +46,7 @@ function buildConfig(type, { year, publisher, metric }) {
   if (type === "bar") return barByPlatform(year, metric);
   if (type === "line") return lineOverYears(["unitsM", "revenueUSD"]);
   if (type === "scatter") return scatterReviewVsSales(publisher);
-  if (type === "doughnut") return doughnutRegionShare(year);
+  if (type === "doughnut") return doughnutRegionShare(year, publisher);
   if (type === "radar") return radarPublishers(year);
   return barByPlatform(year, metric);
 }
@@ -135,44 +135,56 @@ function scatterReviewVsSales(publisher) {
 }
 
 // DOUGHNUT — member vs casual share for one hood + month
-function doughnutMemberVsCasual(year, publisher) {
-  const row = chartData.find(r => r.year === year && r.publisher === publisher);
+function doughnutRegionShare(year, publisher) {
+  const rows = chartData.filter(
+    r => r.year === year && r.publisher === publisher
+);
 
-  const member = Math.round(row.esports * 100);
-  const casual = 100 - member;
+  const labels = rows.map(r => r.region);
+  const values = rows.map(r => r.unitsM);
 
   return {
     type: "doughnut",
     data: {
-      labels: ["Members (%)", "Casual (%)"],
-      datasets: [{ label: "Rider mix", data: [member, casual] }]
+      labels,
+      datasets: [{
+        label: "Region Share",
+        data: values
+      }]
     },
     options: {
       plugins: {
-        title: { display: true, text: `Publisher mix: ${publisher} (${year})` }
+        title: {
+          display: true,
+          text: `Region Share: ${publisher} (${year})`
+        }
       }
     }
   };
 }
 
 // RADAR — compare neighborhoods across multiple metrics for one month
-function radarCompareYears(year) {
+function radarPublishers(year) {
   const rows = chartData.filter(r => r.year === year);
 
-  const metrics = ["unitsM", "revenueUSD", "priceUSD", "reviewScore", "esports"];
+  const metrics = ["unitsM", "revenueUSD", "reviewScore"];
   const labels = metrics;
 
-  const datasets = rows.map(r => ({
-    label: r.publisher,
-    data: metrics.map(m => r[m])
-  }));
+ const datasets = publishers.map(pub => {
+    const row = rows.find(r => r.publisher === pub);
+
+    return {
+      label: pub,
+      data: metrics.map(m => row[m])
+    };
+  });
 
   return {
     type: "radar",
     data: { labels, datasets },
     options: {
       plugins: {
-        title: { display: true, text: `Multi-metric comparison (${year})` }
+        title: { display: true, text: `Publisher Comparison (${year})` }
       }
     }
   };
